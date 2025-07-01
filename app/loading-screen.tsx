@@ -103,7 +103,7 @@ export function LoadingScreen({
                     <div className={styles.progressTrack}>
                         <div
                             className={styles.progressFill}
-                            style={{ width: `${Math.round(progress)}%` }}
+                            data-progress={Math.round(progress)}
                         />
                     </div>
                     <div className={styles.progressText}>
