@@ -4,6 +4,7 @@ import {
   getAuthorById,
   getCategoryById,
   getAllPostSlugs,
+  WordPressAPIError,
 } from "@/lib/wordpress";
 
 import { Section, Container, Article, Prose } from "@/components/craft";
@@ -69,11 +70,21 @@ export default async function Page({
 }: {
     readonly params: Promise<{ slug: string }>;
 }) {
+
   const { slug } = await params;
   const post = await getPostBySlug(slug);
-  const featuredMedia = post.featured_media
-    ? await getFeaturedMediaById(post.featured_media)
-    : null;
+  let featuredMedia = null;
+  if (post.featured_media) {
+    try {
+      featuredMedia = await getFeaturedMediaById(post.featured_media);
+    } catch (e: unknown) {
+      if (e instanceof WordPressAPIError && (e as WordPressAPIError).status === 401) {
+        featuredMedia = null; // fallback nếu không có quyền truy cập
+      } else {
+        throw e;
+      }
+    }
+  }
 
   // Try to get author, but handle cases where it's not accessible
   let author = null;
