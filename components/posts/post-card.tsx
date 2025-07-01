@@ -6,23 +6,35 @@ import { cn } from "@/lib/utils";
 
 import {
   getFeaturedMediaById,
-  getAuthorById,
   getCategoryById,
 } from "@/lib/wordpress";
 
-export async function PostCard({ post }: { post: Post }) {
-  const media = post.featured_media
-    ? await getFeaturedMediaById(post.featured_media)
-    : null;
-  const author = post.author ? await getAuthorById(post.author) : null;
+export async function PostCard({ post }: { readonly post: Post }) {
+  // Try to get featured media, but handle cases where it's not accessible
+  let media = null;
+  try {
+    media = post.featured_media
+      ? await getFeaturedMediaById(post.featured_media)
+      : null;
+  } catch (error) {
+    console.warn(`Could not fetch media ${post.featured_media}:`, error);
+  }
+
   const date = new Date(post.date).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
-  const category = post.categories?.[0]
-    ? await getCategoryById(post.categories[0])
-    : null;
+
+  // Try to get category, but handle cases where it's not accessible  
+  let category = null;
+  try {
+    category = post.categories?.[0]
+      ? await getCategoryById(post.categories[0])
+      : null;
+  } catch (error) {
+    console.warn(`Could not fetch category ${post.categories?.[0]}:`, error);
+  }
 
   return (
     <Link
@@ -68,7 +80,7 @@ export async function PostCard({ post }: { post: Post }) {
       <div className="flex flex-col gap-4">
         <hr />
         <div className="flex justify-between items-center text-xs">
-          <p>{category?.name || "Uncategorized"}</p>
+          <p>{category?.name ?? "Uncategorized"}</p>
           <p>{date}</p>
         </div>
       </div>

@@ -46,25 +46,60 @@ async function wordpressFetch<T>(
   }`;
   const userAgent = "Next.js WordPress Client";
 
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": userAgent,
-    },
-    next: {
-      tags: ["wordpress"],
-      revalidate: 3600, // 1 hour cache
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": userAgent,
+      },
+      next: {
+        tags: ["wordpress"],
+        revalidate: 3600, // 1 hour cache
+      },
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      let errorMessage = `WordPress API request failed: ${response.statusText}`;
+      try {
+        const errorJson = await response.json();
+        if (errorJson?.message) errorMessage = errorJson.message;
+      } catch {
+        // Ignore JSON parse errors, use default message
+      }
+      // Thêm log chi tiết
+      let errorBody = null;
+      try {
+        errorBody = await response.text();
+      } catch { }
+      // eslint-disable-next-line no-console
+      console.error("WordPress fetch error:");
+      // eslint-disable-next-line no-console
+      console.error("  url:", url);
+      // eslint-disable-next-line no-console
+      console.error("  status:", response.status);
+      // eslint-disable-next-line no-console
+      console.error("  errorMessage:", errorMessage);
+      // eslint-disable-next-line no-console
+      console.error("  errorBody:", errorBody);
+      throw new WordPressAPIError(
+        errorMessage,
+        response.status,
+        url
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof WordPressAPIError) {
+      throw error;
+    }
+
+    // Handle network errors
     throw new WordPressAPIError(
-      `WordPress API request failed: ${response.statusText}`,
-      response.status,
+      `Failed to connect to WordPress at ${url}. Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      0,
       url
     );
   }
-
-  return response.json();
 }
 
 // New function for paginated requests
@@ -100,8 +135,8 @@ async function wordpressFetchWithPagination<T>(
   return {
     data,
     headers: {
-      total: parseInt(response.headers.get("X-WP-Total") || "0", 10),
-      totalPages: parseInt(response.headers.get("X-WP-TotalPages") || "0", 10),
+      total: parseInt(response.headers.get("X-WP-Total") ?? "0", 10),
+      totalPages: parseInt(response.headers.get("X-WP-TotalPages") ?? "0", 10),
     },
   };
 }
@@ -174,8 +209,8 @@ export async function getPostsPaginated(
   return {
     data,
     headers: {
-      total: parseInt(response.headers.get("X-WP-Total") || "0", 10),
-      totalPages: parseInt(response.headers.get("X-WP-TotalPages") || "0", 10),
+      total: parseInt(response.headers.get("X-WP-Total") ?? "0", 10),
+      totalPages: parseInt(response.headers.get("X-WP-TotalPages") ?? "0", 10),
     },
   };
 }
@@ -370,11 +405,9 @@ export async function getAllPostSlugs(): Promise<{ slug: string }[]> {
     hasMore = page < response.headers.totalPages;
     page++;
   }
-
   return allSlugs;
 }
 
-// Enhanced pagination functions for specific queries
 export async function getPostsByCategoryPaginated(
   categoryId: number,
   page: number = 1,

@@ -74,13 +74,28 @@ export default async function Page({
   const featuredMedia = post.featured_media
     ? await getFeaturedMediaById(post.featured_media)
     : null;
-  const author = await getAuthorById(post.author);
+
+  // Try to get author, but handle cases where it's not accessible
+  let author = null;
+  try {
+    author = await getAuthorById(post.author);
+  } catch (error) {
+    console.warn(`Could not fetch author ${post.author}:`, error);
+  }
+
   const date = new Date(post.date).toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
   });
-  const category = await getCategoryById(post.categories[0]);
+
+  // Try to get category, but handle cases where it's not accessible
+  let category = null;
+  try {
+    category = await getCategoryById(post.categories[0]);
+  } catch (error) {
+    console.warn(`Could not fetch category ${post.categories[0]}:`, error);
+  }
 
   return (
     <Section>
@@ -95,23 +110,30 @@ export default async function Page({
           </h1>
           <div className="flex justify-between items-center gap-4 text-sm mb-4">
             <h5>
-              Published {date} by{" "}
-              {author.name && (
+              Published {date}
+              {author?.name && (
                 <span>
-                  <a href={`/posts/?author=${author.id}`}>{author.name}</a>{" "}
+                  {" "}by <a href={`/posts/?author=${author.id}`}>{author.name}</a>
                 </span>
               )}
             </h5>
 
-            <Link
-              href={`/posts/?category=${category.id}`}
-              className={cn(
-                badgeVariants({ variant: "outline" }),
-                "!no-underline"
-              )}
-            >
-              {category.name}
-            </Link>
+            {category && (
+              <Link
+                href={`/posts/?category=${category.id}`}
+                className={cn(
+                  badgeVariants({ variant: "outline" }),
+                  "!no-underline"
+                )}
+              >
+                {category.name}
+              </Link>
+            )}
+            {!category && (
+              <span className={cn(badgeVariants({ variant: "outline" }))}>
+                Uncategorized
+              </span>
+            )}
           </div>
           {featuredMedia?.source_url && (
             <div className="h-96 my-12 md:h-[500px] overflow-hidden flex items-center justify-center border rounded-lg bg-accent/25">

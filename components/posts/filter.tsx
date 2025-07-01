@@ -26,12 +26,12 @@ interface Category {
 }
 
 interface FilterPostsProps {
-  authors: Author[];
-  tags: Tag[];
-  categories: Category[];
-  selectedAuthor?: string;
-  selectedTag?: string;
-  selectedCategory?: string;
+  readonly authors: readonly Author[];
+  readonly tags: readonly Tag[];
+  readonly categories: readonly Category[];
+  readonly selectedAuthor?: string;
+  readonly selectedTag?: string;
+  readonly selectedCategory?: string;
 }
 
 export function FilterPosts({
