@@ -73,12 +73,19 @@ export default async function Page({
 
   const { slug } = await params;
   const post = await getPostBySlug(slug);
+  if (!post) {
+    // Nếu không tìm thấy post, trả về trang 404
+    // (Next.js App Router)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    const { notFound } = await import('next/navigation');
+    return notFound();
+  }
   let featuredMedia = null;
   if (post.featured_media) {
     try {
       featuredMedia = await getFeaturedMediaById(post.featured_media);
     } catch (e: unknown) {
-      if (e instanceof WordPressAPIError && (e as WordPressAPIError).status === 401) {
+      if (e instanceof WordPressAPIError && e.status === 401) {
         featuredMedia = null; // fallback nếu không có quyền truy cập
       } else {
         throw e;
